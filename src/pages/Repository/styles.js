@@ -67,6 +67,26 @@ export const IssuesMessage = styled.p`
   text-align: center;
   color: #999999;
 `
+export const Pagination = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  span {
+    color: #666666;
+  }
+  button {
+    padding: 5px 15px;
+    border: 0;
+    border-radius: 4px;
+    background-color: #5aaeb8;
+    color: #ffffff;
+    &[disabled] {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+  }
+`
 export const IssueList = styled.ul`
   margin-top: 20px;
   list-style: none;
