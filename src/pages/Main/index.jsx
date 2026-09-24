@@ -8,6 +8,12 @@ import { Form, SubmitButton, ErrorMessage, List } from './styles'
 
 const REPOSITORY_FORMAT = /^[\w.-]+\/[\w.-]+$/
 
+function isInList(repositories, fullName) {
+  return repositories.some(
+    repository => repository.name.toLowerCase() === fullName.toLowerCase()
+  )
+}
+
 function errorMessage(err) {
   const status = err.response && err.response.status
   if (status === 404) return 'Repositório não encontrado.'
@@ -45,10 +51,6 @@ class Main extends Component {
 
     const { newRepository, repositories } = this.state
     const name = newRepository.trim()
-    const isInList = fullName =>
-      repositories.some(
-        repository => repository.name.toLowerCase() === fullName.toLowerCase()
-      )
 
     if (!name) {
       this.setState({ error: 'Digite o repositório no formato dono/nome.' })
@@ -58,7 +60,7 @@ class Main extends Component {
       this.setState({ error: 'Use o formato dono/nome, por exemplo facebook/react.' })
       return
     }
-    if (isInList(name)) {
+    if (isInList(repositories, name)) {
       this.setState({ error: 'Esse repositório já está na lista.' })
       return
     }
@@ -66,18 +68,16 @@ class Main extends Component {
     this.setState({ loading: true })
     try {
       const response = await api.get(`/repos/${name}`)
-      // A API devolve o nome atual de um repositório renomeado, que pode já estar na lista
-      if (isInList(response.data.full_name)) {
-        this.setState({ error: 'Esse repositório já está na lista.' })
-      } else {
-        const data = {
-          name: response.data.full_name,
-        }
-        this.setState({
-          repositories: [...repositories, data],
-          newRepository: '',
-        })
+      const data = {
+        name: response.data.full_name,
       }
+      // A lista atual vem do setState: ela pode ter mudado durante a requisição.
+      // A API devolve o nome atual de um repositório renomeado, que pode já estar nela.
+      this.setState(state =>
+        isInList(state.repositories, data.name)
+          ? { error: 'Esse repositório já está na lista.' }
+          : { repositories: [...state.repositories, data], newRepository: '' }
+      )
     } catch (err) {
       this.setState({ error: errorMessage(err) })
     } finally {
