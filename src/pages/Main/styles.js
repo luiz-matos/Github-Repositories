@@ -6,7 +6,7 @@ export const Form = styled.form`
   flex-direction: row;
   input {
     flex: 1;
-    border: 1px solid #eeeeee;
+    border: 1px solid ${props => (props.$error ? '#ff6b6b' : '#eeeeee')};
     padding: 10px 15px;
     border-radius: 4px;
     font-size: 16px;
@@ -45,6 +45,10 @@ export const SubmitButton = styled.button.attrs(props => ({
     cursor: not-allowed;
     opacity: 0.6;
   }
+`
+export const ErrorMessage = styled.p`
+  margin-top: 10px;
+  color: #ff6b6b;
 `
 export const List = styled.ul`
   list-style: none;

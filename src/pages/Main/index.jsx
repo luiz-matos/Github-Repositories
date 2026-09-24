@@ -4,13 +4,25 @@ import { FaGithubAlt, FaPlus, FaSpinner } from 'react-icons/fa'
 
 import api from '../../services/api'
 import Container from '../../components/Container'
-import { Form, SubmitButton, List } from './styles'
+import { Form, SubmitButton, ErrorMessage, List } from './styles'
+
+const REPOSITORY_FORMAT = /^[\w.-]+\/[\w.-]+$/
+
+function errorMessage(err) {
+  const status = err.response && err.response.status
+  if (status === 404) return 'Repositório não encontrado.'
+  if (status === 403 || status === 429) {
+    return 'Limite de requisições da API do GitHub atingido. Tente de novo em alguns minutos.'
+  }
+  return 'Não foi possível consultar o GitHub. Verifique a conexão e tente de novo.'
+}
 
 class Main extends Component {
   state = {
     newRepository: '',
     repositories: [],
     loading: false,
+    error: '',
   }
   componentDidMount() {
     const repositories = localStorage.getItem('repositories')
@@ -26,7 +38,7 @@ class Main extends Component {
   }
 
   hundleInputChange = e => {
-    this.setState({ newRepository: e.target.value })
+    this.setState({ newRepository: e.target.value, error: '' })
   }
   hundleSubmit = async e => {
     e.preventDefault()
@@ -38,13 +50,26 @@ class Main extends Component {
         repository => repository.name.toLowerCase() === fullName.toLowerCase()
       )
 
-    if (!name || isInList(name)) return
+    if (!name) {
+      this.setState({ error: 'Digite o repositório no formato dono/nome.' })
+      return
+    }
+    if (!REPOSITORY_FORMAT.test(name)) {
+      this.setState({ error: 'Use o formato dono/nome, por exemplo facebook/react.' })
+      return
+    }
+    if (isInList(name)) {
+      this.setState({ error: 'Esse repositório já está na lista.' })
+      return
+    }
 
     this.setState({ loading: true })
     try {
       const response = await api.get(`/repos/${name}`)
       // A API devolve o nome atual de um repositório renomeado, que pode já estar na lista
-      if (!isInList(response.data.full_name)) {
+      if (isInList(response.data.full_name)) {
+        this.setState({ error: 'Esse repositório já está na lista.' })
+      } else {
         const data = {
           name: response.data.full_name,
         }
@@ -53,21 +78,21 @@ class Main extends Component {
           newRepository: '',
         })
       }
-    } catch {
-      // Repositório inexistente ou limite de requisições da API: nada é adicionado
+    } catch (err) {
+      this.setState({ error: errorMessage(err) })
     } finally {
       this.setState({ loading: false })
     }
   }
   render() {
-    const { newRepository, loading, repositories } = this.state
+    const { newRepository, loading, repositories, error } = this.state
     return (
       <Container>
         <h1>
           <FaGithubAlt />
           Repositórios
         </h1>
-        <Form onSubmit={this.hundleSubmit}>
+        <Form onSubmit={this.hundleSubmit} $error={Boolean(error)}>
           <input
             type="text"
             placeholder="Adicionar repositório"
@@ -82,6 +107,7 @@ class Main extends Component {
             )}
           </SubmitButton>
         </Form>
+        {error && <ErrorMessage role="alert">{error}</ErrorMessage>}
         <List>
           {repositories.map(repository => (
             <li key={repository.name}>
