@@ -1,5 +1,5 @@
-import React, { Component } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 
 import { Loading, Owner, IssueFilter, IssueList, IssuesMessage, Pagination } from './styles'
 import Container from '../../components/Container'
@@ -10,7 +10,6 @@ const FILTERS = [
   { state: 'closed', label: 'Fechadas' },
   { state: 'all', label: 'Todas' },
 ]
-
 const PER_PAGE = 5
 // A busca do GitHub devolve no máximo os primeiros 1000 resultados
 const SEARCH_LIMIT = 1000
@@ -34,163 +33,153 @@ async function fetchIssues(fullName, filter, page) {
   }
 }
 
-class Repository extends Component {
-  state = {
-    repository: {},
-    issues: [],
-    loading: true,
-    error: '',
-    filter: 'open',
-    page: 1,
-    totalPages: 1,
-    issuesLoading: false,
-    issuesError: '',
-  }
+export default function Repository() {
+  const params = useParams()
+  const repositoryName = decodeURIComponent(params.repository)
 
-  issuesRequest = 0
+  const [repository, setRepository] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [issues, setIssues] = useState([])
+  const [filter, setFilter] = useState('open')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [issuesLoading, setIssuesLoading] = useState(false)
+  const [issuesError, setIssuesError] = useState('')
+  // Número da última busca de issues, para descartar respostas que chegam atrasadas
+  const issuesRequest = useRef(0)
 
-  async componentDidMount() {
-    const { match } = this.props
-    const repositoryName = decodeURIComponent(match.params.repository)
-    try {
-      const repository = await api.get(`repos/${repositoryName}`)
-      const { issues, totalPages } = await fetchIssues(
-        repository.data.full_name,
-        this.state.filter,
-        this.state.page
-      )
-      this.setState({
-        loading: false,
-        repository: repository.data,
-        issues,
-        totalPages,
-      })
-    } catch (err) {
-      const notFound = err.response && err.response.status === 404
-      this.setState({
-        loading: false,
-        error: notFound
-          ? 'Repositório não encontrado.'
-          : 'Não foi possível carregar o repositório. Tente de novo em alguns minutos.',
-      })
+  useEffect(() => {
+    let ignore = false
+
+    async function loadRepository() {
+      try {
+        const response = await api.get(`repos/${repositoryName}`)
+        const firstPage = await fetchIssues(response.data.full_name, 'open', 1)
+        if (ignore) return
+        setRepository(response.data)
+        setIssues(firstPage.issues)
+        setTotalPages(firstPage.totalPages)
+      } catch (err) {
+        if (ignore) return
+        const notFound = err.response && err.response.status === 404
+        setError(
+          notFound
+            ? 'Repositório não encontrado.'
+            : 'Não foi possível carregar o repositório. Tente de novo em alguns minutos.'
+        )
+      } finally {
+        if (!ignore) setLoading(false)
+      }
     }
-  }
 
-  loadIssues = async (filter, page) => {
-    const { repository } = this.state
-    const request = ++this.issuesRequest
-    this.setState({ filter, page, issuesLoading: true, issuesError: '' })
+    loadRepository()
+    return () => {
+      ignore = true
+    }
+  }, [repositoryName])
+
+  async function loadIssues(newFilter, newPage) {
+    const request = ++issuesRequest.current
+    setFilter(newFilter)
+    setPage(newPage)
+    setIssuesLoading(true)
+    setIssuesError('')
     try {
-      const { issues, totalPages } = await fetchIssues(repository.full_name, filter, page)
-      // Ignora a resposta se outro filtro ou página foi escolhido enquanto ela chegava
-      if (request === this.issuesRequest) this.setState({ issues, totalPages })
+      const result = await fetchIssues(repository.full_name, newFilter, newPage)
+      if (request === issuesRequest.current) {
+        setIssues(result.issues)
+        setTotalPages(result.totalPages)
+      }
     } catch {
-      if (request === this.issuesRequest) {
-        this.setState({
-          issuesError: 'Não foi possível carregar as issues. Tente de novo em alguns minutos.',
-        })
+      if (request === issuesRequest.current) {
+        setIssuesError('Não foi possível carregar as issues. Tente de novo em alguns minutos.')
       }
     } finally {
-      if (request === this.issuesRequest) this.setState({ issuesLoading: false })
+      if (request === issuesRequest.current) setIssuesLoading(false)
     }
   }
 
-  hundleFilterChange = filter => {
-    this.loadIssues(filter, 1)
+  if (loading) {
+    return <Loading>Carregando</Loading>
   }
 
-  hundlePageChange = page => {
-    this.loadIssues(this.state.filter, page)
-  }
-
-  render() {
-    const {
-      repository,
-      issues,
-      loading,
-      error,
-      filter,
-      page,
-      totalPages,
-      issuesLoading,
-      issuesError,
-    } = this.state
-    if (loading) {
-      return <Loading>Carregando</Loading>
-    }
-    if (error) {
-      return (
-        <Container>
-          <Owner>
-            <Link to="/">Voltar aos repositórios</Link>
-            <p>{error}</p>
-          </Owner>
-        </Container>
-      )
-    }
+  if (error) {
     return (
       <Container>
         <Owner>
           <Link to="/">Voltar aos repositórios</Link>
-          <img src={repository.owner.avatar_url} alt={repository.owner.login} />
-          <h1>{repository.name}</h1>
-          <p>{repository.description}</p>
+          <p>{error}</p>
         </Owner>
-        <IssueFilter>
-          {FILTERS.map(option => (
-            <button
-              key={option.state}
-              type="button"
-              aria-pressed={filter === option.state}
-              onClick={() => this.hundleFilterChange(option.state)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </IssueFilter>
-        {issuesError && <IssuesMessage role="alert">{issuesError}</IssuesMessage>}
-        {!issuesError && issues.length === 0 && (
-          <IssuesMessage>Nenhuma issue encontrada.</IssuesMessage>
-        )}
-        <IssueList $loading={issuesLoading}>
-          {issues.map(issue => (
-            <li key={String(issue.id)}>
-              <img src={issue.user.avatar_url} alt={issue.user.login} />
-              <div>
-                <strong>
-                  <a href={issue.html_url}>{issue.title}</a>
-                  {issue.labels.map(label => (
-                    <span key={String(label.id)}>{label.name}</span>
-                  ))}
-                </strong>
-                <p>{issue.user.login}</p>
-              </div>
-            </li>
-          ))}
-        </IssueList>
-        {!issuesError && totalPages > 1 && (
-          <Pagination>
-            <button
-              type="button"
-              disabled={issuesLoading || page === 1}
-              onClick={() => this.hundlePageChange(page - 1)}
-            >
-              Anterior
-            </button>
-            <span>
-              Página {page} de {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={issuesLoading || page === totalPages}
-              onClick={() => this.hundlePageChange(page + 1)}
-            >
-              Próxima
-            </button>
-          </Pagination>
-        )}
       </Container>
     )
   }
+
+  return (
+    <Container>
+      <Owner>
+        <Link to="/">Voltar aos repositórios</Link>
+        <img src={repository.owner.avatar_url} alt={repository.owner.login} />
+        <h1>{repository.name}</h1>
+        <p>{repository.description}</p>
+      </Owner>
+
+      <IssueFilter>
+        {FILTERS.map(option => (
+          <button
+            key={option.state}
+            type="button"
+            aria-pressed={filter === option.state}
+            onClick={() => loadIssues(option.state, 1)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </IssueFilter>
+
+      {issuesError && <IssuesMessage role="alert">{issuesError}</IssuesMessage>}
+      {!issuesError && issues.length === 0 && (
+        <IssuesMessage>Nenhuma issue encontrada.</IssuesMessage>
+      )}
+
+      <IssueList $loading={issuesLoading}>
+        {issues.map(issue => (
+          <li key={issue.id}>
+            <img src={issue.user.avatar_url} alt={issue.user.login} />
+            <div>
+              <strong>
+                <a href={issue.html_url}>{issue.title}</a>
+                {issue.labels.map(label => (
+                  <span key={label.id}>{label.name}</span>
+                ))}
+              </strong>
+              <p>{issue.user.login}</p>
+            </div>
+          </li>
+        ))}
+      </IssueList>
+
+      {!issuesError && totalPages > 1 && (
+        <Pagination>
+          <button
+            type="button"
+            disabled={issuesLoading || page === 1}
+            onClick={() => loadIssues(filter, page - 1)}
+          >
+            Anterior
+          </button>
+          <span>
+            Página {page} de {totalPages}
+          </span>
+          <button
+            type="button"
+            disabled={issuesLoading || page === totalPages}
+            onClick={() => loadIssues(filter, page + 1)}
+          >
+            Próxima
+          </button>
+        </Pagination>
+      )}
+    </Container>
+  )
 }
-export default Repository
