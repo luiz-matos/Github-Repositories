@@ -1,20 +1,11 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
-import PropTypes from 'prop-types'
 
 import { Loading, Owner, IssueList } from './styles'
 import Container from '../../components/Container'
 import api from '../../services/api'
 
 class Repository extends Component {
-  static propTypes = {
-    match: PropTypes.shape({
-      params: PropTypes.shape({
-        repository: PropTypes.string,
-      }),
-    }).isRequired,
-  }
-
   state = {
     repository: {},
     issues: [],
