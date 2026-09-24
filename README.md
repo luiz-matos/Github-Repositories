@@ -1,68 +1,112 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# GitHub Repositories
 
-## Available Scripts
+App em React que guarda uma lista de repositórios do GitHub e mostra os detalhes e as issues de cada um, consumindo a API pública do GitHub.
 
-In the project directory, you can run:
+Fiz em 2020 como projeto de estudo de React. Em 2026 voltei a ele, troquei o Create React App (descontinuado) pelo Vite, atualizei as dependências, corrigi os bugs e completei o app com mensagens de erro, remoção de repositórios, filtro e paginação das issues.
 
-### `yarn start`
+## Como rodar
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Precisa de Node 20.19, 22.13 ou mais novo, e do Yarn.
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+```bash
+yarn
+```
 
-### `yarn test`
+```bash
+yarn dev
+```
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Depois abra http://localhost:5173.
 
-### `yarn build`
+Digite um repositório no formato `dono/nome` (por exemplo `facebook/react`) e clique em +. Em "Detalhes" aparecem o dono, a descrição e as issues do repositório.
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Outros comandos:
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+| Comando | O que faz |
+|---|---|
+| `yarn build` | Gera a versão de produção na pasta `dist` |
+| `yarn preview` | Serve a pasta `dist` localmente |
+| `yarn lint` | Roda o ESLint |
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+O app usa a API do GitHub sem autenticação. O limite é de 60 requisições por hora para repositórios e de 10 por minuto para a busca de issues, contados por IP.
 
-### `yarn eject`
+## Recursos
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+- Adicionar repositórios pelo nome, com a lista salva no navegador (`localStorage`)
+- Mensagem de erro para campo vazio, formato inválido, repositório repetido, repositório inexistente, limite da API e falha de conexão
+- Remover repositórios da lista
+- Página de detalhes com avatar do dono, nome e descrição
+- Issues com autor, labels e link para o GitHub
+- Filtro de issues abertas, fechadas ou todas
+- Paginação das issues, 5 por página
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Como o código funciona
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+```
+index.html                  página base; o Vite injeta o src/main.jsx
+src/
+├── main.jsx                ponto de entrada: monta o App no #root
+├── App.jsx                 rotas e estilo global
+├── routes.jsx              / (lista) e /repository/:repository (detalhes)
+├── services/api.js         instância do axios apontando para api.github.com
+├── styles/global.js        reset e cores de fundo
+├── components/Container/   caixa branca centralizada usada pelas duas páginas
+└── pages/
+    ├── Main/               lista de repositórios
+    └── Repository/         detalhes e issues
+```
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- **Páginas.** Cada página tem um `index.jsx` com o componente e um `styles.js` com os componentes do styled-components usados só nela.
+- **Lista (`Main`).** O nome digitado é validado antes de qualquer requisição. A API confirma que o repositório existe, e a lista guarda o `full_name` que ela devolve. `saveRepositories()` é o único lugar que altera a lista, e grava no estado e no `localStorage` ao mesmo tempo.
+- **Detalhes (`Repository`).** Ao abrir, busca o repositório e a primeira página de issues. Filtro e paginação passam por `loadIssues(filter, page)`, que refaz só a busca das issues.
+- **Rotas.** O nome do repositório vai na URL com `encodeURIComponent`, porque a barra de `dono/nome` separaria a rota em dois segmentos.
 
-## Learn More
+## Revisitando o projeto em 2026
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Seis anos depois, o projeto não rodava mais. O `react-scripts 3.4` usa o webpack 4, que calcula hashes com MD4, algoritmo que o OpenSSL 3 do Node 17 em diante não aceita, e o build parava com `ERR_OSSL_EVP_UNSUPPORTED`. Depois de atualizar, a revisão encontrou bugs de tratamento de erro e uma lista de issues que misturava pull requests.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Bugs corrigidos
 
-### Code Splitting
+| Bug | Causa | Correção |
+|---|---|---|
+| Botão travado depois de adicionar um repositório inexistente | A requisição não tinha `try/catch`, e o carregamento nunca terminava | `try/catch/finally` em `handleSubmit`, com mensagem de erro |
+| Campo vazio fazia requisição | O texto ia direto para a API | Validação do formato `dono/nome` antes da requisição |
+| Mesmo repositório entrava duas vezes | Não havia verificação | `isInList()` compara ignorando maiúsculas, antes e depois da requisição |
+| Todas as issues com a mesma `key` | Usava `issues.id` (o array) em vez de `issue.id` | `key={issue.id}` |
+| Página de detalhes em "Carregando" para sempre | A requisição não tinha `catch` | Mensagem de erro e link de volta |
+| Atributo `loading` no `<button>` do HTML | A prop do styled-components chegava ao DOM | Prop transitória `$loading` |
+| Pull requests na lista de issues | O endpoint `/repos/{repo}/issues` devolve issues e pull requests juntos | Busca em `/search/issues` com `is:issue` |
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+### Decisões técnicas
 
-### Analyzing the Bundle Size
+**Vite no lugar do Create React App**
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+O Create React App foi descontinuado. O Vite é o substituto mais direto para um app só de front-end: não exige mudar a arquitetura, só o ponto de entrada (`index.html` na raiz e arquivos com JSX em `.jsx`).
 
-### Making a Progressive Web App
+- React 16 para 19, com `createRoot`.
+- React Router 5 para 7: `Routes` e `element` no lugar de `Switch` e `component`, e `useParams` no lugar da prop `match`.
+- `prop-types` saiu, porque o React 19 não confere mais `propTypes`.
+- ESLint 10 com configuração flat, no lugar do `eslintConfig` do CRA.
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+**Busca em vez do endpoint de issues**
 
-### Advanced Configuration
+O endpoint `/repos/{repo}/issues` mistura pull requests. Nos repositórios que conferi, eles eram de 57% a 87% dos itens. Filtrar no navegador deixaria páginas quase vazias, então a lista usa `/search/issues` com `repo:dono/nome is:issue`.
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+- A busca aceita o filtro de estado (`is:open`, `is:closed`) e devolve o `total_count`, que dá o número de páginas.
+- Ordenada por data de criação, a mais nova primeiro, como no endpoint original.
+- O custo é o limite menor, de 10 buscas por minuto sem autenticação, e o teto de 1000 resultados. A paginação respeita esse teto.
 
-### Deployment
+**Nome oficial do repositório**
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
+Repositórios renomeados continuam respondendo pelo nome antigo. `facebook/react` devolve `react/react`. A lista guarda o `full_name` da resposta, e a busca de issues usa esse nome, porque a busca não segue o redirecionamento e recusa o nome antigo.
 
-### `yarn build` fails to minify
+**Respostas fora de ordem**
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+Trocar de filtro ou de página rápido dispara buscas que podem voltar fora de ordem. Cada busca recebe um número (`issuesRequest`), e só a resposta da última atualiza a tela. Enquanto carrega, a lista fica esmaecida e os botões de página ficam desabilitados.
+
+**Organização do código**
+
+- **Componentes de função com hooks.** As páginas eram classes. Agora são funções com `useState`, `useEffect` e `useRef`, o padrão atual do React.
+- **Nomes corrigidos.** `hundleSubmit` e `hundleInputChange` viraram `handleSubmit` e `handleInputChange`, e as rotas deixaram de ser um componente anônimo (`AppRoutes`).
+- **Sem `import React`.** O JSX atual não precisa dele.
+- **Mesmo resultado.** Conferi a troca de classes por funções com 34 testes automatizados (Vitest e Testing Library, fora deste repositório), que cobrem o comportamento original, os bugs e os recursos. Todos passaram antes e depois.
