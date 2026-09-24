@@ -1,9 +1,29 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
 
-import { Loading, Owner, IssueList } from './styles'
+import { Loading, Owner, IssueFilter, IssueList, IssuesMessage } from './styles'
 import Container from '../../components/Container'
 import api from '../../services/api'
+
+const FILTERS = [
+  { state: 'open', label: 'Abertas' },
+  { state: 'closed', label: 'Fechadas' },
+  { state: 'all', label: 'Todas' },
+]
+
+// O endpoint /issues mistura pull requests; a busca com is:issue traz só issues
+async function fetchIssues(fullName, filter) {
+  const stateQuery = filter === 'all' ? '' : ` is:${filter}`
+  const response = await api.get('search/issues', {
+    params: {
+      q: `repo:${fullName} is:issue${stateQuery}`,
+      sort: 'created',
+      order: 'desc',
+      per_page: 5,
+    },
+  })
+  return response.data.items
+}
 
 class Repository extends Component {
   state = {
@@ -11,6 +31,9 @@ class Repository extends Component {
     issues: [],
     loading: true,
     error: '',
+    filter: 'open',
+    issuesLoading: false,
+    issuesError: '',
   }
 
   async componentDidMount() {
@@ -18,19 +41,11 @@ class Repository extends Component {
     const repositoryName = decodeURIComponent(match.params.repository)
     try {
       const repository = await api.get(`repos/${repositoryName}`)
-      // O endpoint /issues mistura pull requests; a busca com is:issue traz só issues
-      const issues = await api.get('search/issues', {
-        params: {
-          q: `repo:${repository.data.full_name} is:issue is:open`,
-          sort: 'created',
-          order: 'desc',
-          per_page: 5,
-        },
-      })
+      const issues = await fetchIssues(repository.data.full_name, this.state.filter)
       this.setState({
         loading: false,
         repository: repository.data,
-        issues: issues.data.items,
+        issues,
       })
     } catch (err) {
       const notFound = err.response && err.response.status === 404
@@ -43,8 +58,34 @@ class Repository extends Component {
     }
   }
 
+  hundleFilterChange = async filter => {
+    const { repository } = this.state
+    this.setState({ filter, issuesLoading: true, issuesError: '' })
+    try {
+      const issues = await fetchIssues(repository.full_name, filter)
+      // Ignora a resposta se outro filtro foi escolhido enquanto ela chegava
+      if (this.state.filter === filter) this.setState({ issues })
+    } catch {
+      if (this.state.filter === filter) {
+        this.setState({
+          issuesError: 'Não foi possível carregar as issues. Tente de novo em alguns minutos.',
+        })
+      }
+    } finally {
+      if (this.state.filter === filter) this.setState({ issuesLoading: false })
+    }
+  }
+
   render() {
-    const { repository, issues, loading, error } = this.state
+    const {
+      repository,
+      issues,
+      loading,
+      error,
+      filter,
+      issuesLoading,
+      issuesError,
+    } = this.state
     if (loading) {
       return <Loading>Carregando</Loading>
     }
@@ -66,7 +107,23 @@ class Repository extends Component {
           <h1>{repository.name}</h1>
           <p>{repository.description}</p>
         </Owner>
-        <IssueList>
+        <IssueFilter>
+          {FILTERS.map(option => (
+            <button
+              key={option.state}
+              type="button"
+              aria-pressed={filter === option.state}
+              onClick={() => this.hundleFilterChange(option.state)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </IssueFilter>
+        {issuesError && <IssuesMessage role="alert">{issuesError}</IssuesMessage>}
+        {!issuesError && issues.length === 0 && (
+          <IssuesMessage>Nenhuma issue encontrada.</IssuesMessage>
+        )}
+        <IssueList $loading={issuesLoading}>
           {issues.map(issue => (
             <li key={String(issue.id)}>
               <img src={issue.user.avatar_url} alt={issue.user.login} />

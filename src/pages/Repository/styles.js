@@ -36,11 +36,41 @@ export const Owner = styled.header`
     max-width: 400px;
   }
 `
-export const IssueList = styled.ul`
+export const IssueFilter = styled.div`
+  display: flex;
+  justify-content: center;
   padding-top: 30px;
   margin-top: 30px;
   border-top: 1px solid #eeeeee;
+  button {
+    padding: 5px 15px;
+    border: 1px solid #5aaeb8;
+    background-color: #ffffff;
+    color: #5aaeb8;
+    & + button {
+      margin-left: 5px;
+    }
+    &[aria-pressed='true'] {
+      background-color: #5aaeb8;
+      color: #ffffff;
+    }
+  }
+  button:first-child {
+    border-radius: 4px 0 0 4px;
+  }
+  button:last-child {
+    border-radius: 0 4px 4px 0;
+  }
+`
+export const IssuesMessage = styled.p`
+  margin-top: 20px;
+  text-align: center;
+  color: #999999;
+`
+export const IssueList = styled.ul`
+  margin-top: 20px;
   list-style: none;
+  opacity: ${props => (props.$loading ? 0.5 : 1)};
   li {
     display: flex;
     padding: 15px 10px;
