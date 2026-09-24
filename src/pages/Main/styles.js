@@ -64,8 +64,26 @@ export const List = styled.ul`
       border-top: 1px solid #eeeeee;
     }
   }
+  div {
+    display: flex;
+    align-items: center;
+  }
   a {
     color: #5aaeb8;
     text-decoration: none;
+  }
+  button {
+    display: flex;
+    margin-left: 15px;
+    padding: 5px;
+    border: 0;
+    background: none;
+    color: #999999;
+    &:hover {
+      color: #ff6b6b;
+    }
+    svg {
+      margin: 0;
+    }
   }
 `

@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import { Link } from 'react-router-dom'
-import { FaGithubAlt, FaPlus, FaSpinner } from 'react-icons/fa'
+import { FaGithubAlt, FaPlus, FaSpinner, FaTrash } from 'react-icons/fa'
 
 import api from '../../services/api'
 import Container from '../../components/Container'
@@ -84,6 +84,11 @@ class Main extends Component {
       this.setState({ loading: false })
     }
   }
+  hundleRemove = name => {
+    this.setState(({ repositories }) => ({
+      repositories: repositories.filter(repository => repository.name !== name),
+    }))
+  }
   render() {
     const { newRepository, loading, repositories, error } = this.state
     return (
@@ -112,9 +117,19 @@ class Main extends Component {
           {repositories.map(repository => (
             <li key={repository.name}>
               <span>{repository.name}</span>
-              <Link to={`/repository/${encodeURIComponent(repository.name)}`}>
-                Detalhes
-              </Link>
+              <div>
+                <Link to={`/repository/${encodeURIComponent(repository.name)}`}>
+                  Detalhes
+                </Link>
+                <button
+                  type="button"
+                  title="Remover"
+                  aria-label={`Remover ${repository.name}`}
+                  onClick={() => this.hundleRemove(repository.name)}
+                >
+                  <FaTrash size={14} />
+                </button>
+              </div>
             </li>
           ))}
         </List>
