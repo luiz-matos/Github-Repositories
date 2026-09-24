@@ -75,6 +75,7 @@ Seis anos depois, o projeto não rodava mais. O `react-scripts 3.4` usa o webpac
 | Todas as issues com a mesma `key` | Usava `issues.id` (o array) em vez de `issue.id` | `key={issue.id}` |
 | Página de detalhes em "Carregando" para sempre | A requisição não tinha `catch` | Mensagem de erro e link de volta |
 | Atributo `loading` no `<button>` do HTML | A prop do styled-components chegava ao DOM | Prop transitória `$loading` |
+| Tela principal quebrava com `localStorage` inválido | `JSON.parse` sem tratamento, e o resultado era usado como lista sem conferir | `loadRepositories()` devolve lista vazia para conteúdo inválido e descarta itens sem nome |
 | Pull requests na lista de issues | O endpoint `/repos/{repo}/issues` devolve issues e pull requests juntos | Busca em `/search/issues` com `is:issue` |
 
 ### Decisões técnicas

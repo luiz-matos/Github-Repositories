@@ -9,9 +9,15 @@ import { Form, SubmitButton, ErrorMessage, List } from './styles'
 const STORAGE_KEY = 'repositories'
 const REPOSITORY_FORMAT = /^[\w.-]+\/[\w.-]+$/
 
+// Conteúdo inválido no localStorage (editado à mão ou de outra versão) vira lista vazia
 function loadRepositories() {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  return saved ? JSON.parse(saved) : []
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))
+    if (!Array.isArray(saved)) return []
+    return saved.filter(repository => typeof repository?.name === 'string')
+  } catch {
+    return []
+  }
 }
 
 function isInList(repositories, fullName) {
