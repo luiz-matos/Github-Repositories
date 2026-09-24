@@ -30,19 +30,34 @@ class Main extends Component {
   }
   hundleSubmit = async e => {
     e.preventDefault()
-    this.setState({ loading: true })
 
     const { newRepository, repositories } = this.state
+    const name = newRepository.trim()
+    const isInList = fullName =>
+      repositories.some(
+        repository => repository.name.toLowerCase() === fullName.toLowerCase()
+      )
 
-    const response = await api.get(`/repos/${newRepository}`)
-    const data = {
-      name: response.data.full_name,
+    if (!name || isInList(name)) return
+
+    this.setState({ loading: true })
+    try {
+      const response = await api.get(`/repos/${name}`)
+      // A API devolve o nome atual de um repositório renomeado, que pode já estar na lista
+      if (!isInList(response.data.full_name)) {
+        const data = {
+          name: response.data.full_name,
+        }
+        this.setState({
+          repositories: [...repositories, data],
+          newRepository: '',
+        })
+      }
+    } catch {
+      // Repositório inexistente ou limite de requisições da API: nada é adicionado
+    } finally {
+      this.setState({ loading: false })
     }
-    this.setState({
-      repositories: [...repositories, data],
-      newRepository: '',
-      loading: false,
-    })
   }
   render() {
     const { newRepository, loading, repositories } = this.state
@@ -59,7 +74,7 @@ class Main extends Component {
             value={newRepository}
             onChange={this.hundleInputChange}
           />
-          <SubmitButton loading={loading}>
+          <SubmitButton $loading={loading}>
             {loading ? (
               <FaSpinner color="#ffffff" size={14} />
             ) : (

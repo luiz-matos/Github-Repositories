@@ -10,31 +10,53 @@ class Repository extends Component {
     repository: {},
     issues: [],
     loading: true,
+    error: '',
   }
 
   async componentDidMount() {
     const { match } = this.props
     const repositoryName = decodeURIComponent(match.params.repository)
-    const [repository, issues] = await Promise.all([
-      api.get(`repos/${repositoryName}`),
-      api.get(`repos/${repositoryName}/issues`, {
+    try {
+      const repository = await api.get(`repos/${repositoryName}`)
+      // O endpoint /issues mistura pull requests; a busca com is:issue traz só issues
+      const issues = await api.get('search/issues', {
         params: {
-          state: 'open',
+          q: `repo:${repository.data.full_name} is:issue is:open`,
+          sort: 'created',
+          order: 'desc',
           per_page: 5,
         },
-      }),
-    ])
-    this.setState({
-      loading: false,
-      repository: repository.data,
-      issues: issues.data,
-    })
+      })
+      this.setState({
+        loading: false,
+        repository: repository.data,
+        issues: issues.data.items,
+      })
+    } catch (err) {
+      const notFound = err.response && err.response.status === 404
+      this.setState({
+        loading: false,
+        error: notFound
+          ? 'Repositório não encontrado.'
+          : 'Não foi possível carregar o repositório. Tente de novo em alguns minutos.',
+      })
+    }
   }
 
   render() {
-    const { repository, issues, loading } = this.state
+    const { repository, issues, loading, error } = this.state
     if (loading) {
       return <Loading>Carregando</Loading>
+    }
+    if (error) {
+      return (
+        <Container>
+          <Owner>
+            <Link to="/">Voltar aos repositórios</Link>
+            <p>{error}</p>
+          </Owner>
+        </Container>
+      )
     }
     return (
       <Container>
@@ -46,7 +68,7 @@ class Repository extends Component {
         </Owner>
         <IssueList>
           {issues.map(issue => (
-            <li key={String(issues.id)}>
+            <li key={String(issue.id)}>
               <img src={issue.user.avatar_url} alt={issue.user.login} />
               <div>
                 <strong>
