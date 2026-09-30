@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/React%20Router-7-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white" alt="React Router 7">
   <img src="https://img.shields.io/badge/styled--components-6-DB7093?style=for-the-badge&logo=styledcomponents&logoColor=white" alt="styled-components 6">
   <img src="https://img.shields.io/badge/GitHub-API-181717?style=for-the-badge&logo=github" alt="GitHub API">
+  <img src="https://img.shields.io/badge/Licen%C3%A7a-MIT-yellow?style=for-the-badge" alt="Licença MIT">
 </div>
 
 <br>
@@ -20,6 +21,7 @@ Fiz em 2020 como projeto de estudo de React. Em 2026 voltei a ele, troquei o Cre
 - [✨ Recursos](#-recursos)
 - [🧩 Como o código funciona](#-como-o-código-funciona)
 - [🔄 Revisitando o projeto em 2026](#-revisitando-o-projeto-em-2026)
+- [📄 Licença](#-licença)
 
 ## 🚀 Como rodar
 
@@ -128,6 +130,10 @@ Trocar de filtro ou de página rápido dispara buscas que podem voltar fora de o
 - **Nomes corrigidos.** `hundleSubmit` e `hundleInputChange` viraram `handleSubmit` e `handleInputChange`, e as rotas deixaram de ser um componente anônimo (`AppRoutes`).
 - **Sem `import React`.** O JSX atual não precisa dele.
 - **Mesmo resultado.** Conferi a troca de classes por funções com 34 testes automatizados (Vitest e Testing Library, fora deste repositório), que cobrem o comportamento original, os bugs e os recursos. Todos passaram antes e depois.
+
+## 📄 Licença
+
+[MIT](LICENSE)
 
 ---
 
