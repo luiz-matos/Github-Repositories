@@ -1,10 +1,27 @@
-# GitHub Repositories
+# 🐙 GitHub Repositories
 
-App em React que guarda uma lista de repositórios do GitHub e mostra os detalhes e as issues de cada um, consumindo a API pública do GitHub.
+<div align="center">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19">
+  <img src="https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite 8">
+  <img src="https://img.shields.io/badge/React%20Router-7-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white" alt="React Router 7">
+  <img src="https://img.shields.io/badge/styled--components-6-DB7093?style=for-the-badge&logo=styledcomponents&logoColor=white" alt="styled-components 6">
+  <img src="https://img.shields.io/badge/GitHub-API-181717?style=for-the-badge&logo=github" alt="GitHub API">
+</div>
+
+<br>
+
+> 🎯 **App em React que guarda uma lista de repositórios do GitHub e mostra os detalhes e as issues de cada um**, consumindo a API pública do GitHub.
 
 Fiz em 2020 como projeto de estudo de React. Em 2026 voltei a ele, troquei o Create React App (descontinuado) pelo Vite, atualizei as dependências, corrigi os bugs e completei o app com mensagens de erro, remoção de repositórios, filtro e paginação das issues.
 
-## Como rodar
+## 📋 Índice
+
+- [🚀 Como rodar](#-como-rodar)
+- [✨ Recursos](#-recursos)
+- [🧩 Como o código funciona](#-como-o-código-funciona)
+- [🔄 Revisitando o projeto em 2026](#-revisitando-o-projeto-em-2026)
+
+## 🚀 Como rodar
 
 Precisa de Node 20.19, 22.13 ou mais novo, e do Yarn.
 
@@ -30,7 +47,7 @@ Outros comandos:
 
 O app usa a API do GitHub sem autenticação. O limite é de 60 requisições por hora para repositórios e de 10 por minuto para a busca de issues, contados por IP.
 
-## Recursos
+## ✨ Recursos
 
 - Adicionar repositórios pelo nome, com a lista salva no navegador (`localStorage`)
 - Mensagem de erro para campo vazio, formato inválido, repositório repetido, repositório inexistente, limite da API e falha de conexão
@@ -40,7 +57,7 @@ O app usa a API do GitHub sem autenticação. O limite é de 60 requisições po
 - Filtro de issues abertas, fechadas ou todas
 - Paginação das issues, 5 por página
 
-## Como o código funciona
+## 🧩 Como o código funciona
 
 ```
 index.html                  página base; o Vite injeta o src/main.jsx
@@ -61,11 +78,11 @@ src/
 - **Detalhes (`Repository`).** Ao abrir, busca o repositório e a primeira página de issues. Filtro e paginação passam por `loadIssues(filter, page)`, que refaz só a busca das issues.
 - **Rotas.** O nome do repositório vai na URL com `encodeURIComponent`, porque a barra de `dono/nome` separaria a rota em dois segmentos.
 
-## Revisitando o projeto em 2026
+## 🔄 Revisitando o projeto em 2026
 
 Seis anos depois, o projeto não rodava mais. O `react-scripts 3.4` usa o webpack 4, que calcula hashes com MD4, algoritmo que o OpenSSL 3 do Node 17 em diante não aceita, e o build parava com `ERR_OSSL_EVP_UNSUPPORTED`. Depois de atualizar, a revisão encontrou bugs de tratamento de erro e uma lista de issues que misturava pull requests.
 
-### Bugs corrigidos
+### 🐛 Bugs corrigidos
 
 | Bug | Causa | Correção |
 |---|---|---|
@@ -78,7 +95,7 @@ Seis anos depois, o projeto não rodava mais. O `react-scripts 3.4` usa o webpac
 | Tela principal quebrava com `localStorage` inválido | `JSON.parse` sem tratamento, e o resultado era usado como lista sem conferir | `loadRepositories()` devolve lista vazia para conteúdo inválido e descarta itens sem nome |
 | Pull requests na lista de issues | O endpoint `/repos/{repo}/issues` devolve issues e pull requests juntos | Busca em `/search/issues` com `is:issue` |
 
-### Decisões técnicas
+### 🧠 Decisões técnicas
 
 **Vite no lugar do Create React App**
 
@@ -111,3 +128,13 @@ Trocar de filtro ou de página rápido dispara buscas que podem voltar fora de o
 - **Nomes corrigidos.** `hundleSubmit` e `hundleInputChange` viraram `handleSubmit` e `handleInputChange`, e as rotas deixaram de ser um componente anônimo (`AppRoutes`).
 - **Sem `import React`.** O JSX atual não precisa dele.
 - **Mesmo resultado.** Conferi a troca de classes por funções com 34 testes automatizados (Vitest e Testing Library, fora deste repositório), que cobrem o comportamento original, os bugs e os recursos. Todos passaram antes e depois.
+
+---
+
+<div align="center">
+  <p>Desenvolvido por <strong>Luiz Matos</strong></p>
+  <p>
+    <a href="https://github.com/luiz-matos">GitHub</a> •
+    <a href="https://www.linkedin.com/in/luizeduardomatos/">LinkedIn</a>
+  </p>
+</div>
